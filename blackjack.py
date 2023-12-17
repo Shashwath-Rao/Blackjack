@@ -2,8 +2,7 @@ from PyQt6 import QtCore, QtGui, QtWidgets
 from PyQt6.QtWidgets import QMessageBox,QInputDialog
 import random,time
 from PyQt6.QtGui import QPixmap
-
-
+from PyQt6.QtCore import QThread
 
 class Ui_Dialog:
     def setupUi(self, Dialog):
@@ -122,6 +121,9 @@ if __name__ == "__main__":
     values = {'Two': 2, 'Three': 3, 'Four': 4, 'Five': 5, 'Six': 6, 'Seven': 7, 'Eight': 8, 'Nine': 9, 'Ten': 10,
               'Jack': 10, 'Queen': 10, 'King': 10, 'Ace': 11}
 
+    class Thread(QThread):
+        def run(self):
+            time.sleep(0.01)
 
     class Card:
 
@@ -231,9 +233,10 @@ if __name__ == "__main__":
                 player_lose(computer_cards, player_cards)
                 break
 
-
     def hit_stand(computer_cards, player_cards, player_deck):
         stand = False
+        thread = Thread()
+        thread.finished.connect(lambda: ui.pushButton.setEnabled(True))
 
         def s():
             nonlocal stand
@@ -241,24 +244,29 @@ if __name__ == "__main__":
 
         def h():
             player_card = hit(computer_cards, player_cards, player_deck)
-            ui.pushButton.setDisabled(True)
+            if not thread.isRunning():
+                ui.pushButton.setEnabled(False)
+                thread.start()
+
             if player_card is None:
                 return
 
             if check_ace(player_card) <= 21:
                 print_all(computer_cards, player_card)
-                ui.pushButton.setDisabled(False)
 
             else:
                 player_lose(computer_cards, player_card)
 
         ui.pushButton.clicked.connect(h)
         ui.pushButton_2.clicked.connect(s)
+
         while True:
             global playing
-            QtGui.QGuiApplication.processEvents()
             time.sleep(0.10)
+            QtGui.QGuiApplication.processEvents()
             if not playing or stand:
+                thread.terminate()
+                ui.pushButton.clicked.disconnect()
                 break
 
 
@@ -337,7 +345,6 @@ if __name__ == "__main__":
     def chip_bet():
         global playing
         playing = True
-        ui.pushButton.setDisabled(False)
         ui.label1.setPixmap(QPixmap())
         ui.label2.setPixmap(QPixmap())
         ui.label3.setPixmap(QPixmap())
