@@ -1,6 +1,7 @@
 from PyQt6 import QtCore, QtGui, QtWidgets
-from PyQt6.QtWidgets import QInputDialog
+from PyQt6.QtWidgets import QInputDialog, QMessageBox
 from PyQt6.QtGui import QPixmap
+import math
 import random
 
 
@@ -90,11 +91,18 @@ class Ui_Dialog:
         self.result.setGeometry(QtCore.QRect(10, 670, 650, 30))
         self.result.setText("")
         self.result.setObjectName("result")
+        self.win = QtWidgets.QLabel(parent=Dialog)
+        self.win.setGeometry(QtCore.QRect(700, 665, 194, 40))
+        self.win.setText("Computer : 0 \t Player : 0")
+        self.win.setObjectName("win")
+        self.win.setStyleSheet("border: 2px dotted black;")
+
         self.splitter.raise_()
         self.splitter_2.raise_()
         self.pushButton_2.raise_()
         self.pushButton.raise_()
         self.result.raise_()
+        self.win.raise_()
 
         self.retranslateUi(Dialog)
         QtCore.QMetaObject.connectSlotsByName(Dialog)
@@ -115,7 +123,14 @@ if __name__ == "__main__":
     Dialog.show()
 
     playing = True
+    chip = 100
+    highscore = 0
+    while True:
+        uname, ok = QInputDialog.getText(None, "User Name", "Please enter your name")
+        if ok and uname != "":
+            break
 
+    table = {'Computer': 0, 'Player': 0}
     suits = ('hearts', 'diamonds', 'spades', 'clubs')
     ranks = ('Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten', 'Jack', 'Queen', 'King', 'Ace')
     values = {'Two': 2, 'Three': 3, 'Four': 4, 'Five': 5, 'Six': 6, 'Seven': 7, 'Eight': 8, 'Nine': 9, 'Ten': 10,
@@ -168,7 +183,6 @@ if __name__ == "__main__":
                 ui.label4.setPixmap(QPixmap("png/"+computer[card].rank+"_of_"+computer[card].suit+".png"))
             elif i == 5:
                 ui.label5.setPixmap(QPixmap("png/"+computer[card].rank+"_of_"+computer[card].suit+".png"))
-
             i += 1
 
         dealers_total(computer)
@@ -218,7 +232,6 @@ if __name__ == "__main__":
 
 
     def hit(computer_cards, player_cards, player_deck):
-
         while True:
             a1 = check_ace(player_cards)
 
@@ -228,6 +241,7 @@ if __name__ == "__main__":
             else:
                 player_lose(computer_cards, player_cards)
                 break
+
 
     def hit_stand(computer_cards, player_cards, player_deck):
         stand = False
@@ -282,6 +296,9 @@ if __name__ == "__main__":
             elif comp_total == player_total:
                 print_all(computer_cards, player_cards)
                 ui.result.setText("It's a tie!!!")
+                table['Computer'] += 1
+                table['Player'] += 1
+                disp_record()
                 break
 
             else:
@@ -289,26 +306,56 @@ if __name__ == "__main__":
                 break
 
 
-    def player_lose(computer_cards, player_cards):
-        global playing
-        print_all(computer_cards, player_cards)
-        ui.result.setText(f"Computer has won!!! Player has lost! Total chips remaining: {100 - chip}\n"
-                          f"Computer total: {check_ace(computer_cards)} Players total: {check_ace(player_cards)}")
+    def store_highscore():
+        if highscore > 100:
+            with open("highscore.txt", "a") as f:
+                f.write(f"{uname} : {highscore} \n")
 
+
+    def player_lose(computer_cards, player_cards):
+        global playing, chip
+        chip -= bet
+        table['Computer'] += 1
+        print_all(computer_cards, player_cards)
+        ui.result.setText(f"Computer has won!!! Player has lost! Total chips remaining: {chip}\n"
+                          f"Computer total: {check_ace(computer_cards)} Players total: {check_ace(player_cards)}")
+        disp_record()
+        QtGui.QGuiApplication.processEvents()
+        if chip == 0:
+            x = QMessageBox()
+            x.setWindowTitle("Game Over !!!")
+            x.setText(f"You have run out of chips !!! Game Over !!! \n High Score : {highscore}")
+            x.exec()
+            store_highscore()
+            sys.exit()
         playing = False
 
 
     def dealer_lose(computer_cards, player_cards):
-        global playing
+        global playing, chip, highscore
         print_all(computer_cards, player_cards)
-        ui.result.setText(f"Player has won!!! Computer has lost!  Total chips remaining: {chip + 100}\n"
+        chip += bet
+        table['Player'] += 1
+        ui.result.setText(f"Player has won!!! Computer has lost!  Total chips remaining: {chip}\n"
                           f"Computer total: {check_ace(computer_cards)} Players total: {check_ace(player_cards)}")
-
+        disp_record()
+        highscore = max(highscore, chip)
         playing = False
 
 
-    def run_logic():
+    def disp_record():
+        record = ""
+        cw = table['Computer'] * 100 / (table['Computer'] + table['Player'])
+        pw = table['Player'] * 100 / (table['Computer'] + table['Player'])
+        perc = {'Computer': str(math.trunc(cw)) + "%", 'Player': str(math.trunc(pw)) + "%"}
+        for key in table:
+            record += key + " : " + str(table[key]) + "\t"
+        record += "\n"
+        for key in perc:
+            record += key + " : " + str(perc[key]) + "   "
+        ui.win.setText(record)
 
+    def run_logic():
         deck = Deck()
         deck.shuffle()
 
@@ -347,18 +394,20 @@ if __name__ == "__main__":
         ui.label10.setPixmap(QPixmap())
 
         while True:
-            bet, okay = QInputDialog.getInt(None,"Hello","Welcome to Blackjack please enter your bet (1 to 100): ", 1, 1, 100, 1)
-            if 1 <= bet <= 100 and okay:
+            global chip
+            bet, okay = QInputDialog.getInt(None, f"Hello - Chips remaining {chip}",
+                                            f"Welcome to Blackjack please enter your bet (1 to {chip}): ", 1, 1, chip, 1)
+            if bet <= chip and okay:
                 ui.result.setText("")
                 return bet
 
     while True:
-
-        chip = chip_bet()
+        bet = chip_bet()
         run_logic()
-        text, ok = QInputDialog.getText(None,"Hello","Do you want to continue to play BlackJack (y or n):")
+        text, ok = QInputDialog.getText(None, "Hello", "Do you want to continue to play BlackJack (y or n):")
         if text == "n" and ok:
-            ui.result.setText("Game Over")
+            ui.result.setText(f"Game Over !!! Your High Score is {highscore}")
+            store_highscore()
             break
 
     app.exec()
