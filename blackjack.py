@@ -1,8 +1,8 @@
 from PyQt6 import QtCore, QtGui, QtWidgets
-from PyQt6.QtWidgets import QMessageBox,QInputDialog
-import random,time
+from PyQt6.QtWidgets import QInputDialog
 from PyQt6.QtGui import QPixmap
-from PyQt6.QtCore import QThread
+import random
+
 
 class Ui_Dialog:
     def setupUi(self, Dialog):
@@ -121,10 +121,6 @@ if __name__ == "__main__":
     values = {'Two': 2, 'Three': 3, 'Four': 4, 'Five': 5, 'Six': 6, 'Seven': 7, 'Eight': 8, 'Nine': 9, 'Ten': 10,
               'Jack': 10, 'Queen': 10, 'King': 10, 'Ace': 11}
 
-    class Thread(QThread):
-        def run(self):
-            time.sleep(0.01)
-
     class Card:
 
         def __init__(self, suit, rank):
@@ -235,8 +231,7 @@ if __name__ == "__main__":
 
     def hit_stand(computer_cards, player_cards, player_deck):
         stand = False
-        thread = Thread()
-        thread.finished.connect(lambda: ui.pushButton.setEnabled(True))
+        global playing
 
         def s():
             nonlocal stand
@@ -244,9 +239,6 @@ if __name__ == "__main__":
 
         def h():
             player_card = hit(computer_cards, player_cards, player_deck)
-            if not thread.isRunning():
-                ui.pushButton.setEnabled(False)
-                thread.start()
 
             if player_card is None:
                 return
@@ -261,12 +253,10 @@ if __name__ == "__main__":
         ui.pushButton_2.clicked.connect(s)
 
         while True:
-            global playing
-            time.sleep(0.10)
             QtGui.QGuiApplication.processEvents()
             if not playing or stand:
-                thread.terminate()
-                ui.pushButton.clicked.disconnect()
+                ui.pushButton.disconnect()
+                ui.pushButton_2.disconnect()
                 break
 
 
@@ -357,8 +347,8 @@ if __name__ == "__main__":
         ui.label10.setPixmap(QPixmap())
 
         while True:
-            bet, ok = QInputDialog.getInt(None,"Hello","Welcome to Blackjack please enter your bet (1 to 100): ", 1, 1, 100, 1)
-            if 1 <= bet <= 100 and ok:
+            bet, okay = QInputDialog.getInt(None,"Hello","Welcome to Blackjack please enter your bet (1 to 100): ", 1, 1, 100, 1)
+            if 1 <= bet <= 100 and okay:
                 ui.result.setText("")
                 return bet
 
@@ -366,8 +356,8 @@ if __name__ == "__main__":
 
         chip = chip_bet()
         run_logic()
-        text,ok = QInputDialog.getText(None,"Hello","Do you want to continue to play BlackJack (y or n):")
-        if ok and text == "n":
+        text, ok = QInputDialog.getText(None,"Hello","Do you want to continue to play BlackJack (y or n):")
+        if text == "n" and ok:
             ui.result.setText("Game Over")
             break
 
