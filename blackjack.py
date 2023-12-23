@@ -1,6 +1,7 @@
 from PyQt6 import QtCore, QtGui, QtWidgets
 from PyQt6.QtWidgets import QInputDialog, QMessageBox
 from PyQt6.QtGui import QPixmap
+from pathlib import Path
 import math
 import random
 
@@ -163,8 +164,8 @@ if __name__ == "__main__":
 
 
     def print_some(computer, player):
-        ui.label1.setPixmap(QPixmap("png/"+computer[1].rank+"_of_"+computer[1].suit+".png"))
-        ui.label2.setPixmap(QPixmap("png/not.png"))
+        ui.label1.setPixmap(QPixmap("png/"+computer[0].rank+"_of_"+computer[0].suit+".png"))
+        ui.label2.setPixmap(QPixmap("png/"+"not.png"))
         ui.label6.setPixmap(QPixmap("png/"+player[0].rank+"_of_"+player[0].suit+".png"))
         ui.label7.setPixmap(QPixmap("png/"+player[1].rank+"_of_"+player[1].suit+".png"))
         players_total(player)
@@ -404,8 +405,12 @@ if __name__ == "__main__":
     while True:
         bet = chip_bet()
         run_logic()
-        text, ok = QInputDialog.getText(None, "Hello", "Do you want to continue to play BlackJack (y or n):")
-        if text == "n" and ok:
+        dlg = QMessageBox()
+        dlg.setWindowTitle("Hello")
+        dlg.setText("Do you want to continue to play BlackJack")
+        dlg.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
+
+        if dlg.exec() == QMessageBox.StandardButton.No:
             ui.result.setText(f"Game Over !!! Your High Score is {highscore}")
             store_highscore()
             break
